@@ -13,6 +13,7 @@ people = {}
 movies = {}
 
 
+
 def load_data(directory):
     """
     Load data from CSV files into memory.
@@ -83,6 +84,8 @@ def main():
             movie = movies[path[i + 1][0]]["title"]
             print(f"{i + 1}: {person1} and {person2} starred in {movie}")
 
+    
+
 
 def shortest_path(source, target):
     """
@@ -92,9 +95,30 @@ def shortest_path(source, target):
     If no possible path, returns None.
     """
 
-    # TODO
-    raise NotImplementedError
+    frontier = QueueFrontier()
+    explored = []
 
+    frontier.add(Node(source,-1,-1))
+    while not frontier.empty():
+        top_node = frontier.remove()
+        explored.append(top_node.state)
+        neighbors = neighbors_for_person(top_node.state)
+
+        for neighbor in neighbors:
+            if neighbor[1] not in explored:
+                node = Node(neighbor[1],top_node,neighbor[0])
+                if neighbor[1] == target:
+                    l = []
+                    while node.state != source:
+                        l.append((node.action,node.state))
+                        node = node.parent
+
+                    l.reverse()
+                    return l
+                else:
+                    frontier.add(node)
+    
+    return None
 
 def person_id_for_name(name):
     """
