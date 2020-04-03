@@ -54,10 +54,7 @@ knowledge2 = And(
 # C says "A is a knight."
 knowledge3 = And(
     Biconditional(CKnave,BKnight),
-    
     Biconditional(CKnight,AKnight),
-    
-
     Implication(BKnight,Biconditional(AKnave,AKnight)),
 
 
