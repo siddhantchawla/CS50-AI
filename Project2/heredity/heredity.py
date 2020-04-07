@@ -160,7 +160,75 @@ def child_conditional():
                     prob.append([i,j,k,(giving[i]*not_giving[j] + not_giving[i]*giving[j])])
     return prob
 
+def joint_probability(people, one_gene, two_genes, have_trait):
+    """
+    Compute and return a joint probability.
 
+    The probability returned should be the probability that
+        * everyone in set `one_gene` has one copy of the gene, and
+        * everyone in set `two_genes` has two copies of the gene, and
+        * everyone not in `one_gene` or `two_gene` does not have the gene, and
+        * everyone in set `have_trait` has the trait, and
+        * everyone not in set` have_trait` does not have the trait.
+    """
+
+    #create the conditional probablity table using discrete probablity table
+
+    trait_prob = trait_conditional()
+    child_prob = child_conditional()
+
+    # Create BayesianNetwork Model from people
+
+    model = BayesianNetwork()
+    persons = list(people.keys())
+    node = dict()
+    conditions = [] #list to store given conditions of the people
+
+    for person in persons:
+        if people[person]['mother'] is None and people[person]['father'] is None:
+            node[person] = Node(DiscreteDistribution(PROBS["gene"]),name = person)
+            trait = person+"_Trait"
+            node[trait] = Node(ConditionalProbabilityTable(trait_prob,[node[person].distribution]),name = trait)
+            model.add_states(node[person],node[trait])
+            model.add_edge(node[person],node[trait])
+            if person in one_gene:
+                conditions.append(1)
+            elif person in two_genes:
+                conditions.append(2)
+            else:
+                conditions.append(0)
+
+            if person in have_trait:
+                conditions.append(True)
+            else:
+                conditions.append(False)
+
+    for person in persons:
+        if people[person]['mother'] and people[person]['father']:
+            node[person] = Node(ConditionalProbabilityTable(child_prob,[node[people[person]['father']].distribution,node[people[person]['mother']].distribution]),name = person)
+            trait = person+"_Trait"
+            node[trait] = Node(ConditionalProbabilityTable(trait_prob,[node[person].distribution]),name = trait)
+            model.add_states(node[person],node[trait])
+            model.add_edge(node[person],node[trait])
+            model.add_edge(node[people[person]['father']],node[person])
+            model.add_edge(node[people[person]['mother']],node[person])
+            if person in one_gene:
+                conditions.append(1)
+            elif person in two_genes:
+                conditions.append(2)
+            else:
+                conditions.append(0)
+
+            if person in have_trait:
+                conditions.append(True)
+            else:
+                conditions.append(False)
+
+    #calculate the probablity using the model
+
+    model.bake()
+    probability = model.probability([conditions])
+    return probability
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
@@ -211,6 +279,7 @@ def normalize(probabilities):
 
 
     return True
+
 
 if __name__ == "__main__":
     main()
