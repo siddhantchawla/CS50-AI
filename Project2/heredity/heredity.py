@@ -184,13 +184,15 @@ def joint_probability(people, one_gene, two_genes, have_trait):
     node = dict()
     conditions = [] #list to store given conditions of the people
 
-    for person in persons:
+    for person in persons:   #Adding Nodes representing people who do not have parents.
         if people[person]['mother'] is None and people[person]['father'] is None:
             node[person] = Node(DiscreteDistribution(PROBS["gene"]),name = person)
             trait = person+"_Trait"
             node[trait] = Node(ConditionalProbabilityTable(trait_prob,[node[person].distribution]),name = trait)
             model.add_states(node[person],node[trait])
             model.add_edge(node[person],node[trait])
+
+
             if person in one_gene:
                 conditions.append(1)
             elif person in two_genes:
@@ -203,7 +205,7 @@ def joint_probability(people, one_gene, two_genes, have_trait):
             else:
                 conditions.append(False)
 
-    for person in persons:
+    for person in persons: #Adding Nodes representing people who do have parents.
         if people[person]['mother'] and people[person]['father']:
             node[person] = Node(ConditionalProbabilityTable(child_prob,[node[people[person]['father']].distribution,node[people[person]['mother']].distribution]),name = person)
             trait = person+"_Trait"
@@ -212,6 +214,8 @@ def joint_probability(people, one_gene, two_genes, have_trait):
             model.add_edge(node[person],node[trait])
             model.add_edge(node[people[person]['father']],node[person])
             model.add_edge(node[people[person]['mother']],node[person])
+
+            
             if person in one_gene:
                 conditions.append(1)
             elif person in two_genes:
