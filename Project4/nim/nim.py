@@ -1,6 +1,7 @@
 import math
 import random
 import time
+from pomegranate import *
 
 
 class Nim():
@@ -101,7 +102,10 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        if (state,action) in self.q:
+            return self.q[(state,action)]
+        return 0
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +122,17 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        self.q[(state,action)] = old_q + self.alpha*(reward + future_rewards - old_q)
+
+
+    def all_actions(self, piles):
+        actions = set()
+        for i, pile in enumerate(piles):
+            for j in range(1, piles[i] + 1):
+                actions.add((i, j))
+        return actions
+
 
     def best_future_reward(self, state):
         """
@@ -130,7 +144,15 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        
+        actions = list(self.all_actions(state))
+        state = tuple(state)
+        max_reward = 0
+        for action in actions:
+            if (state,action) in self.q:
+                if self.q[(state,action)] > max_reward:
+                    max_reward = self.q[(state,action)]
+        return max_reward
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +169,33 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        actions = list(self.all_actions(state))
+        highest_q = 0
+        action = actions[0]
+        state = tuple(state)
+        for act in actions:
+            if (state,act) in self.q:
+                if (self.q[(state,act)]) >= highest_q:
+                    highest_q = self.q[(state,act)]
+                    action = act
+
+        if epsilon:
+            random_action = actions[random.randrange(len(actions))]
+            dist = dict()
+            dist["random"] = self.epsilon
+            dist["greedy"] = 1 - self.epsilon
+
+            sample = Node(DiscreteDistribution(dist), name="page")
+            model = BayesianNetwork()
+            model.add_states(sample)
+            model.bake()
+
+            for state in model.states:
+                pred = state.distribution.sample()
+
+            if pred == "random":
+                action = random_action
+        return action
 
 
 def train(n):
