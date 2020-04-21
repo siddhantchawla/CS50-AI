@@ -1,5 +1,9 @@
 import nltk
 import sys
+import glob
+import os
+import string
+import math
 
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
@@ -48,7 +52,14 @@ def load_files(directory):
     Given a directory name, return a dictionary mapping the filename of each
     `.txt` file inside that directory to the file's contents as a string.
     """
-    raise NotImplementedError
+    files = dict()
+    path = directory + os.sep + "*"
+    for file in glob.glob(path):
+        name = file.split(os.sep)[-1]
+        with open(file) as f:
+            files[name] = f.read()
+
+    return files
 
 
 def tokenize(document):
@@ -59,8 +70,13 @@ def tokenize(document):
     Process document by coverting all words to lowercase, and removing any
     punctuation or English stopwords.
     """
-    raise NotImplementedError
+    document = document.lower()
+    document = document.translate(str.maketrans('', '', string.punctuation))
+    words = nltk.word_tokenize(document)
+    stopwords = nltk.corpus.stopwords.words("english")
+    result = [i for i in words if i not in stopwords]
 
+    return result
 
 def compute_idfs(documents):
     """
@@ -70,7 +86,18 @@ def compute_idfs(documents):
     Any word that appears in at least one of the documents should be in the
     resulting dictionary.
     """
-    raise NotImplementedError
+    words = set()
+    idfs = dict()
+    for file in documents:
+        for word in documents[file]:
+            words.add(word)
+
+    for word in words:
+        f = sum(word in documents[filename] for filename in documents)
+        idf = math.log(len(documents) / f)
+        idfs[word] = idf
+
+    return idfs
 
 
 def top_files(query, files, idfs, n):
@@ -80,7 +107,20 @@ def top_files(query, files, idfs, n):
     to their IDF values), return a list of the filenames of the the `n` top
     files that match the query, ranked according to tf-idf.
     """
-    raise NotImplementedError
+    files_score = dict()
+
+    for file in files:
+        files_score[file] = 0
+        for word in query:
+            idf = 0
+            if word in idfs:
+                idf = idfs[word]
+            files_score[file] += files[file].count(word) * idf
+
+    rank = sorted(files_score.keys(),key = lambda x: files_score[x],reverse = True)
+
+    rank = list(rank)
+    return rank[:n]
 
 
 def top_sentences(query, sentences, idfs, n):
@@ -91,7 +131,23 @@ def top_sentences(query, sentences, idfs, n):
     the query, ranked according to idf. If there are ties, preference should
     be given to sentences that have a higher query term density.
     """
-    raise NotImplementedError
+    sentence_scores = dict()
+    for sent in sentences:
+        s = 0
+        words = sentences[sent]
+        word_count = len(words)
+        count = 0
+        for word in query:
+            if word in words:
+                s += idfs[word]
+                count += 1
+
+        sentence_scores[sent] = (s,float(count/word_count))
+
+    sentence = sorted(sentence_scores.keys(),key = lambda x:sentence_scores[x],reverse = True)
+    sentence = list(sentence)
+
+    return sentence[:n]
 
 
 if __name__ == "__main__":
